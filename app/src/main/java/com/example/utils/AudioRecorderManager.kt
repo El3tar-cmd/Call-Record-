@@ -13,7 +13,7 @@ class AudioRecorderManager(private val context: Context) {
     private var isRecording = false
     private var startTimeMillis: Long = 0L
 
-    fun startRecording(fileNamePrefix: String): File? {
+    fun startRecording(fileNamePrefix: String, isCallRecording: Boolean = false): File? {
         if (isRecording) return currentFile
 
         try {
@@ -28,9 +28,22 @@ class AudioRecorderManager(private val context: Context) {
             }
 
             recorder.apply {
-                setAudioSource(MediaRecorder.AudioSource.MIC)
+                if (isCallRecording) {
+                    try {
+                        setAudioSource(MediaRecorder.AudioSource.VOICE_COMMUNICATION)
+                        Log.d(TAG, "Using VOICE_COMMUNICATION as audio source for call recording")
+                    } catch (ex: Exception) {
+                        Log.w(TAG, "Failed to set VOICE_COMMUNICATION source, falling back to MIC", ex)
+                        setAudioSource(MediaRecorder.AudioSource.MIC)
+                    }
+                } else {
+                    setAudioSource(MediaRecorder.AudioSource.MIC)
+                }
+                
                 setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
                 setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+                setAudioSamplingRate(44100)
+                setAudioEncodingBitRate(64000)
                 setOutputFile(audioFile.absolutePath)
                 prepare()
                 start()

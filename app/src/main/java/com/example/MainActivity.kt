@@ -1,10 +1,13 @@
 package com.example
 
 import android.Manifest
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -223,7 +226,46 @@ fun SajilAppMainScreen(
         hasCallLogPermission = permissions[Manifest.permission.READ_CALL_LOG] ?: hasCallLogPermission
     }
 
+    var isIgnoringBatteryOptimizations by remember {
+        mutableStateOf(
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                val powerManager = context.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
+                powerManager.isIgnoringBatteryOptimizations(context.packageName)
+            } else {
+                true
+            }
+        )
+    }
+
+    val checkBatteryOptimization = {
+        isIgnoringBatteryOptimizations = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val powerManager = context.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
+            powerManager.isIgnoringBatteryOptimizations(context.packageName)
+        } else {
+            true
+        }
+    }
+
+    val requestBatteryOptimizationExemption = {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            try {
+                val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                    data = Uri.parse("package:${context.packageName}")
+                }
+                context.startActivity(intent)
+            } catch (e: Exception) {
+                try {
+                    val intent = Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
+                    context.startActivity(intent)
+                } catch (ex: Exception) {
+                    android.util.Log.e("MainActivity", "Failed to launch battery settings", ex)
+                }
+            }
+        }
+    }
+
     LaunchedEffect(Unit) {
+        checkBatteryOptimization()
         val permissionsToRequest = mutableListOf<String>()
         if (!hasMicPermission) permissionsToRequest.add(Manifest.permission.RECORD_AUDIO)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !hasNotificationPermission) {
@@ -333,6 +375,7 @@ fun SajilAppMainScreen(
                         hasNotificationPermission = hasNotificationPermission,
                         hasPhoneStatePermission = hasPhoneStatePermission,
                         hasCallLogPermission = hasCallLogPermission,
+                        isIgnoringBatteryOptimizations = isIgnoringBatteryOptimizations,
                         onRequestPermissions = {
                             val permissions = mutableListOf(
                                 Manifest.permission.RECORD_AUDIO,
@@ -343,6 +386,9 @@ fun SajilAppMainScreen(
                                 permissions.add(Manifest.permission.POST_NOTIFICATIONS)
                             }
                             permissionLauncher.launch(permissions.toTypedArray())
+                        },
+                        onRequestBatteryExemption = {
+                            requestBatteryOptimizationExemption()
                         }
                     )
                 }
@@ -1146,7 +1192,9 @@ fun PermissionsGuideTab(
     hasNotificationPermission: Boolean,
     hasPhoneStatePermission: Boolean,
     hasCallLogPermission: Boolean,
-    onRequestPermissions: () -> Unit
+    isIgnoringBatteryOptimizations: Boolean,
+    onRequestPermissions: () -> Unit,
+    onRequestBatteryExemption: () -> Unit
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -1313,6 +1361,43 @@ fun PermissionsGuideTab(
                             Text(
                                 text = if (hasNotificationPermission) "مفعلة" else "غير مفعلة",
                                 color = if (hasNotificationPermission) InboundCallColor else HighDensitySubText,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    // Permission 5: Battery Optimization Exemption
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = "Battery Optimization",
+                                tint = if (isIgnoringBatteryOptimizations) InboundCallColor else MicRecordingColor,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text("تجاوز تحسين البطارية", color = HighDensityText, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                                Text("منع النظام من إيقاف الخدمة تلقائياً", color = HighDensitySubText, fontSize = 11.sp)
+                            }
+                        }
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(if (isIgnoringBatteryOptimizations) InboundCallColor.copy(alpha = 0.15f) else MicRecordingColor.copy(alpha = 0.15f))
+                                .clickable { onRequestBatteryExemption() }
+                                .padding(horizontal = 10.dp, vertical = 6.dp)
+                        ) {
+                            Text(
+                                text = if (isIgnoringBatteryOptimizations) "مفعلة" else "تفعيل الآن",
+                                color = if (isIgnoringBatteryOptimizations) InboundCallColor else MicRecordingColor,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold
                             )

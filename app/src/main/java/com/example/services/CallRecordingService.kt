@@ -11,6 +11,7 @@ import android.database.Cursor
 import android.net.Uri
 import android.os.Build
 import android.os.IBinder
+import android.provider.CallLog
 import android.provider.ContactsContract
 import android.util.Log
 import androidx.core.app.NotificationCompat
@@ -90,7 +91,7 @@ class CallRecordingService : Service() {
         }
 
         val prefix = if (direction == "INBOUND") "call_in" else "call_out"
-        val file = recorderManager.startRecording(prefix)
+        val file = recorderManager.startRecording(prefix, isCallRecording = true)
 
         if (file != null) {
             // Update Tracker
@@ -134,9 +135,28 @@ class CallRecordingService : Service() {
         if (result.file != null && result.file.exists()) {
             serviceScope.launch {
                 try {
+                    // Delay slightly to allow the OS to write the final call log entry
+                    delay(1200)
+                    
+                    var finalName = callerName
+                    try {
+                        val callDetails = getLastCallDetails(applicationContext)
+                        if (callDetails != null) {
+                            finalName = if (!callDetails.name.isNullOrEmpty()) {
+                                callDetails.name
+                            } else if (!callDetails.number.isNullOrEmpty()) {
+                                callDetails.number
+                            } else {
+                                finalName
+                            }
+                        }
+                    } catch (ex: Exception) {
+                        Log.e(TAG, "Failed to fetch name from call log", ex)
+                    }
+
                     val database = RecordingDatabase.getDatabase(applicationContext)
                     val newRecording = Recording(
-                        title = callerName,
+                        title = finalName,
                         source = "CELLULAR",
                         direction = direction,
                         durationSec = duration,
@@ -145,7 +165,7 @@ class CallRecordingService : Service() {
                         notes = "مكالمة مسجلة تلقائياً بفضل كاشف الإشارات والاتصال المباشر."
                     )
                     database.recordingDao().insertRecording(newRecording)
-                    Log.d(TAG, "Successfully saved call recording to database.")
+                    Log.d(TAG, "Successfully saved call recording to database as: $finalName")
                 } catch (e: Exception) {
                     Log.e(TAG, "Error saving recording to Room", e)
                 } finally {
@@ -157,6 +177,34 @@ class CallRecordingService : Service() {
             stopSelf()
         }
     }
+
+    private fun getLastCallDetails(context: Context): CallDetails? {
+        try {
+            val cursor = context.contentResolver.query(
+                CallLog.Calls.CONTENT_URI,
+                arrayOf(
+                    CallLog.Calls.NUMBER,
+                    CallLog.Calls.CACHED_NAME,
+                    CallLog.Calls.TYPE
+                ),
+                null,
+                null,
+                CallLog.Calls.DATE + " DESC"
+            )
+            cursor?.use {
+                if (it.moveToFirst()) {
+                    val number = it.getString(0)
+                    val name = it.getString(1)
+                    return CallDetails(number, name)
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error querying call log details", e)
+        }
+        return null
+    }
+
+    private data class CallDetails(val number: String?, val name: String?)
 
     private fun startTimers() {
         timerJob?.cancel()
