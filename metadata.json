@@ -1,0 +1,6 @@
+{
+  "name": "Sajil - Smart Call Recorder",
+  "description": "تطبيق احترافي لتسجيل المكالمات العادية والماسينجر والواتساب مع تحويل الصوت إلى نص وتلخيص المكالمات باستخدام الذكاء الاصطناعي.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
