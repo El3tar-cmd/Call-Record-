@@ -20,51 +20,59 @@ class AudioRecorderManager(private val context: Context) {
             val audioFile = File(context.filesDir, "${fileNamePrefix}_${System.currentTimeMillis()}.m4a")
             currentFile = audioFile
 
-            @Suppress("DEPRECATION")
-            val recorder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                MediaRecorder(context)
+            val sourcesToTry = if (isCallRecording) {
+                listOf(
+                    MediaRecorder.AudioSource.VOICE_COMMUNICATION,
+                    MediaRecorder.AudioSource.VOICE_RECOGNITION,
+                    MediaRecorder.AudioSource.CAMCORDER,
+                    MediaRecorder.AudioSource.MIC
+                )
             } else {
-                MediaRecorder()
+                listOf(MediaRecorder.AudioSource.MIC)
             }
 
-            recorder.apply {
-                if (isCallRecording) {
-                    var sourceSet = false
-                    val sourcesToTry = listOf(
-                        MediaRecorder.AudioSource.MIC,
-                        MediaRecorder.AudioSource.VOICE_RECOGNITION,
-                        MediaRecorder.AudioSource.CAMCORDER,
-                        MediaRecorder.AudioSource.VOICE_COMMUNICATION
-                    )
-                    
-                    for (source in sourcesToTry) {
-                        try {
-                            setAudioSource(source)
-                            Log.d(TAG, "Successfully set audio source to: $source")
-                            sourceSet = true
-                            break
-                        } catch (ex: Exception) {
-                            Log.w(TAG, "Failed to set audio source $source, trying next...", ex)
-                        }
-                    }
-                    
-                    if (!sourceSet) {
-                        setAudioSource(MediaRecorder.AudioSource.MIC)
-                    }
+            var activeRecorder: MediaRecorder? = null
+            var lastException: Exception? = null
+
+            for (source in sourcesToTry) {
+                @Suppress("DEPRECATION")
+                val recorder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    MediaRecorder(context)
                 } else {
-                    setAudioSource(MediaRecorder.AudioSource.MIC)
+                    MediaRecorder()
                 }
-                
-                setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
-                setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
-                setAudioSamplingRate(44100)
-                setAudioEncodingBitRate(64000)
-                setOutputFile(audioFile.absolutePath)
-                prepare()
-                start()
+
+                try {
+                    recorder.apply {
+                        setAudioSource(source)
+                        setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+                        setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+                        setAudioSamplingRate(44100)
+                        setAudioEncodingBitRate(64000)
+                        setOutputFile(audioFile.absolutePath)
+                        prepare()
+                        start()
+                    }
+                    activeRecorder = recorder
+                    Log.d(TAG, "Successfully initialized and started recorder with source: $source")
+                    break
+                } catch (ex: Exception) {
+                    Log.w(TAG, "Failed to initialize/start recorder with source $source, trying next...", ex)
+                    lastException = ex
+                    try {
+                        recorder.reset()
+                        recorder.release()
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error releasing failed recorder", e)
+                    }
+                }
             }
 
-            mediaRecorder = recorder
+            if (activeRecorder == null) {
+                throw lastException ?: Exception("All audio sources failed to initialize")
+            }
+
+            mediaRecorder = activeRecorder
             isRecording = true
             startTimeMillis = System.currentTimeMillis()
             Log.d(TAG, "Recording started successfully: ${audioFile.absolutePath}")
