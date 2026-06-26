@@ -91,24 +91,30 @@ class CallRecordingService : Service() {
         }
 
         val prefix = if (direction == "INBOUND") "call_in" else "call_out"
-        val file = recorderManager.startRecording(prefix, isCallRecording = true)
+        
+        serviceScope.launch {
+            // Delay to allow the dialer's audio routing to settle and our MainActivity to come to foreground
+            delay(1500)
+            
+            val file = recorderManager.startRecording(prefix, isCallRecording = true)
 
-        if (file != null) {
-            // Update Tracker
-            CallStateTracker.isRecording.value = true
-            CallStateTracker.callerName.value = resolvedName
-            CallStateTracker.durationSec.value = 0
-            CallStateTracker.platform.value = "CELLULAR"
-            CallStateTracker.direction.value = direction
-            CallStateTracker.activeFilePath.value = file.absolutePath
-            CallStateTracker.amplitudeList.value = emptyList()
+            if (file != null) {
+                // Update Tracker
+                CallStateTracker.isRecording.value = true
+                CallStateTracker.callerName.value = resolvedName
+                CallStateTracker.durationSec.value = 0
+                CallStateTracker.platform.value = "CELLULAR"
+                CallStateTracker.direction.value = direction
+                CallStateTracker.activeFilePath.value = file.absolutePath
+                CallStateTracker.amplitudeList.value = emptyList()
 
-            // Start active monitoring timers
-            startTimers()
-            Log.d(TAG, "Call recording started for $resolvedName")
-        } else {
-            Log.e(TAG, "Failed to start call recording.")
-            stopSelf()
+                // Start active monitoring timers
+                startTimers()
+                Log.d(TAG, "Call recording started for $resolvedName")
+            } else {
+                Log.e(TAG, "Failed to start call recording.")
+                stopSelf()
+            }
         }
     }
 

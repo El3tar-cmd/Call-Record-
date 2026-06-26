@@ -20,16 +20,12 @@ class AudioRecorderManager(private val context: Context) {
             val audioFile = File(context.filesDir, "${fileNamePrefix}_${System.currentTimeMillis()}.m4a")
             currentFile = audioFile
 
-            val sourcesToTry = if (isCallRecording) {
-                listOf(
-                    MediaRecorder.AudioSource.VOICE_COMMUNICATION,
-                    MediaRecorder.AudioSource.VOICE_RECOGNITION,
-                    MediaRecorder.AudioSource.CAMCORDER,
-                    MediaRecorder.AudioSource.MIC
-                )
-            } else {
-                listOf(MediaRecorder.AudioSource.MIC)
-            }
+            val sourcesToTry = listOf(
+                MediaRecorder.AudioSource.MIC,
+                MediaRecorder.AudioSource.VOICE_RECOGNITION,
+                MediaRecorder.AudioSource.VOICE_COMMUNICATION,
+                MediaRecorder.AudioSource.CAMCORDER
+            )
 
             var activeRecorder: MediaRecorder? = null
             var lastException: Exception? = null
