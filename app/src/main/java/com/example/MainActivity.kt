@@ -64,6 +64,7 @@ import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Share
@@ -180,6 +181,13 @@ fun SajilAppMainScreen(
     val isRecordingActive by viewModel.isRecordingActive.collectAsState()
     val aiOperationState by viewModel.aiOperationState.collectAsState()
     val selectedRecording by viewModel.selectedRecording.collectAsState()
+
+    var activeDetailsRecording by remember { mutableStateOf<Recording?>(null) }
+    LaunchedEffect(selectedRecording) {
+        if (selectedRecording != null) {
+            activeDetailsRecording = selectedRecording
+        }
+    }
 
     // Collect background CallStateTracker variables
     val isServiceRecording by com.example.services.CallStateTracker.isRecording.collectAsState()
@@ -405,7 +413,7 @@ fun SajilAppMainScreen(
             exit = fadeOut() + slideOutVertically(targetOffsetY = { it }),
             modifier = Modifier.fillMaxSize()
         ) {
-            selectedRecording?.let { rec ->
+            activeDetailsRecording?.let { rec ->
                 RecordingDetailsPanel(
                     recording = rec,
                     viewModel = viewModel,
@@ -1919,7 +1927,7 @@ fun AudioPlayerSection(
             ) {
                 Icon(
                     imageVector = if (isCurrentPlaying) {
-                        Icons.Default.Close
+                        Icons.Default.Pause
                     } else {
                         Icons.Default.PlayArrow
                     },
