@@ -10,4 +10,7 @@ object CallStateTracker {
     val platform = MutableStateFlow("CELLULAR")
     val direction = MutableStateFlow("INBOUND") // INBOUND or OUTBOUND
     val activeFilePath = MutableStateFlow<String?>(null)
+
+    var initialSpeakerState: Boolean = false
+    var initialAudioMode: Int = 0 // AudioManager.MODE_NORMAL
 }
