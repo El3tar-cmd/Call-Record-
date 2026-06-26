@@ -29,11 +29,26 @@ class AudioRecorderManager(private val context: Context) {
 
             recorder.apply {
                 if (isCallRecording) {
-                    try {
-                        setAudioSource(MediaRecorder.AudioSource.VOICE_COMMUNICATION)
-                        Log.d(TAG, "Using VOICE_COMMUNICATION as audio source for call recording")
-                    } catch (ex: Exception) {
-                        Log.w(TAG, "Failed to set VOICE_COMMUNICATION source, falling back to MIC", ex)
+                    var sourceSet = false
+                    val sourcesToTry = listOf(
+                        MediaRecorder.AudioSource.MIC,
+                        MediaRecorder.AudioSource.VOICE_RECOGNITION,
+                        MediaRecorder.AudioSource.CAMCORDER,
+                        MediaRecorder.AudioSource.VOICE_COMMUNICATION
+                    )
+                    
+                    for (source in sourcesToTry) {
+                        try {
+                            setAudioSource(source)
+                            Log.d(TAG, "Successfully set audio source to: $source")
+                            sourceSet = true
+                            break
+                        } catch (ex: Exception) {
+                            Log.w(TAG, "Failed to set audio source $source, trying next...", ex)
+                        }
+                    }
+                    
+                    if (!sourceSet) {
                         setAudioSource(MediaRecorder.AudioSource.MIC)
                     }
                 } else {
