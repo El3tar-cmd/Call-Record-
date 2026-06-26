@@ -257,6 +257,16 @@ fun SajilAppMainScreen(
         }
     }
 
+    var hasOverlayPermission by remember {
+        mutableStateOf(
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                Settings.canDrawOverlays(context)
+            } else {
+                true
+            }
+        )
+    }
+
     val requestBatteryOptimizationExemption = {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             try {
@@ -271,6 +281,19 @@ fun SajilAppMainScreen(
                 } catch (ex: Exception) {
                     android.util.Log.e("MainActivity", "Failed to launch battery settings", ex)
                 }
+            }
+        }
+    }
+
+    val requestOverlayPermission = {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            try {
+                val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION).apply {
+                    data = Uri.parse("package:${context.packageName}")
+                }
+                context.startActivity(intent)
+            } catch (e: Exception) {
+                // Ignore
             }
         }
     }
@@ -387,6 +410,7 @@ fun SajilAppMainScreen(
                         hasPhoneStatePermission = hasPhoneStatePermission,
                         hasCallLogPermission = hasCallLogPermission,
                         isIgnoringBatteryOptimizations = isIgnoringBatteryOptimizations,
+                        hasOverlayPermission = hasOverlayPermission,
                         onRequestPermissions = {
                             val permissions = mutableListOf(
                                 Manifest.permission.RECORD_AUDIO,
@@ -400,6 +424,9 @@ fun SajilAppMainScreen(
                         },
                         onRequestBatteryExemption = {
                             requestBatteryOptimizationExemption()
+                        },
+                        onRequestOverlayPermission = {
+                            requestOverlayPermission()
                         }
                     )
                 }
@@ -1198,8 +1225,10 @@ fun PermissionsGuideTab(
     hasPhoneStatePermission: Boolean,
     hasCallLogPermission: Boolean,
     isIgnoringBatteryOptimizations: Boolean,
+    hasOverlayPermission: Boolean,
     onRequestPermissions: () -> Unit,
-    onRequestBatteryExemption: () -> Unit
+    onRequestBatteryExemption: () -> Unit,
+    onRequestOverlayPermission: () -> Unit
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -1403,6 +1432,43 @@ fun PermissionsGuideTab(
                             Text(
                                 text = if (isIgnoringBatteryOptimizations) "مفعلة" else "تفعيل الآن",
                                 color = if (isIgnoringBatteryOptimizations) InboundCallColor else MicRecordingColor,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    // Permission 6: Overlay (System Alert Window)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = "Overlay Permission",
+                                tint = if (hasOverlayPermission) InboundCallColor else MicRecordingColor,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text("الظهور فوق التطبيقات", color = HighDensityText, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                                Text("فتح التطبيق تلقائيا لتسجيل المكالمات بنجاح", color = HighDensitySubText, fontSize = 11.sp)
+                            }
+                        }
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(if (hasOverlayPermission) InboundCallColor.copy(alpha = 0.15f) else MicRecordingColor.copy(alpha = 0.15f))
+                                .clickable { onRequestOverlayPermission() }
+                                .padding(horizontal = 10.dp, vertical = 6.dp)
+                        ) {
+                            Text(
+                                text = if (hasOverlayPermission) "مفعلة" else "تفعيل الآن",
+                                color = if (hasOverlayPermission) InboundCallColor else MicRecordingColor,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold
                             )
