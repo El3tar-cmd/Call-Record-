@@ -25,7 +25,7 @@ class AudioPlayerManager(private val context: Context) {
                 if (player.isPlaying) {
                     val currentPos = player.currentPosition
                     val duration = player.duration
-                    _playbackState.value = PlaybackState.Playing(currentPos, duration)
+                    _playbackState.value = PlaybackState.Playing(currentFilePath ?: "", currentPos, duration)
                     handler.postDelayed(this, 250) // Update every 250ms
                 }
             }
@@ -38,7 +38,7 @@ class AudioPlayerManager(private val context: Context) {
             mediaPlayer?.let { player ->
                 player.start()
                 setPlaybackSpeed(playbackSpeed)
-                _playbackState.value = PlaybackState.Playing(player.currentPosition, player.duration)
+                _playbackState.value = PlaybackState.Playing(filePath, player.currentPosition, player.duration)
                 handler.post(updateProgressAction)
                 return
             }
@@ -68,7 +68,7 @@ class AudioPlayerManager(private val context: Context) {
 
             currentFilePath = filePath
             setPlaybackSpeed(playbackSpeed)
-            _playbackState.value = PlaybackState.Playing(0, mediaPlayer?.duration ?: 0)
+            _playbackState.value = PlaybackState.Playing(filePath, 0, mediaPlayer?.duration ?: 0)
             handler.post(updateProgressAction)
             Log.d(TAG, "Playback started for: $filePath")
         } catch (e: Exception) {
@@ -81,7 +81,7 @@ class AudioPlayerManager(private val context: Context) {
         mediaPlayer?.let { player ->
             if (player.isPlaying) {
                 player.pause()
-                _playbackState.value = PlaybackState.Paused(player.currentPosition, player.duration)
+                _playbackState.value = PlaybackState.Paused(currentFilePath ?: "", player.currentPosition, player.duration)
                 handler.removeCallbacks(updateProgressAction)
                 Log.d(TAG, "Playback paused")
             }
@@ -92,7 +92,7 @@ class AudioPlayerManager(private val context: Context) {
         mediaPlayer?.let { player ->
             if (!player.isPlaying) {
                 player.start()
-                _playbackState.value = PlaybackState.Playing(player.currentPosition, player.duration)
+                _playbackState.value = PlaybackState.Playing(currentFilePath ?: "", player.currentPosition, player.duration)
                 handler.post(updateProgressAction)
                 Log.d(TAG, "Playback resumed")
             }
@@ -122,9 +122,9 @@ class AudioPlayerManager(private val context: Context) {
             player.seekTo(positionMs)
             val currentState = _playbackState.value
             if (currentState is PlaybackState.Playing) {
-                _playbackState.value = PlaybackState.Playing(positionMs, player.duration)
+                _playbackState.value = PlaybackState.Playing(currentState.path, positionMs, player.duration)
             } else if (currentState is PlaybackState.Paused) {
-                _playbackState.value = PlaybackState.Paused(positionMs, player.duration)
+                _playbackState.value = PlaybackState.Paused(currentState.path, positionMs, player.duration)
             }
         }
     }
@@ -146,9 +146,14 @@ class AudioPlayerManager(private val context: Context) {
     fun getCurrentPlayingPath(): String? = currentFilePath
 
     sealed interface PlaybackState {
+        val filePath: String? get() = null
         object Idle : PlaybackState
-        data class Playing(val currentPositionMs: Int, val durationMs: Int) : PlaybackState
-        data class Paused(val currentPositionMs: Int, val durationMs: Int) : PlaybackState
+        data class Playing(val path: String, val currentPositionMs: Int, val durationMs: Int) : PlaybackState {
+            override val filePath: String get() = path
+        }
+        data class Paused(val path: String, val currentPositionMs: Int, val durationMs: Int) : PlaybackState {
+            override val filePath: String get() = path
+        }
         object Completed : PlaybackState
         data class Error(val message: String) : PlaybackState
     }

@@ -107,6 +107,8 @@ class CallRecorderViewModel(application: Application) : AndroidViewModel(applica
 
     fun selectRecording(recording: Recording?) {
         _selectedRecording.value = recording
+        // Always stop any current audio playback to prevent state leakage
+        playerManager.stopAudio()
     }
 
     // Audio Playback Actions

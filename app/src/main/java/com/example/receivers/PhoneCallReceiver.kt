@@ -33,6 +33,20 @@ class PhoneCallReceiver : BroadcastReceiver() {
                 isIncoming = true
                 lastState = TelephonyManager.EXTRA_STATE_RINGING
                 Log.d(TAG, "Ringing... Incoming call detected.")
+                
+                // Auto-launch MainActivity so the app wakes up and appears on the screen!
+                try {
+                    val launchIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)?.apply {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                    }
+                    if (launchIntent != null) {
+                        context.startActivity(launchIntent)
+                        Log.d(TAG, "MainActivity launched successfully on RINGING")
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to launch main activity on RINGING", e)
+                }
             }
             TelephonyManager.EXTRA_STATE_OFFHOOK -> {
                 // Call answered or outgoing call placed

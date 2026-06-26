@@ -1792,18 +1792,23 @@ fun AudioPlayerSection(
     onSeek: (Int) -> Unit,
     onSpeedChange: (Float) -> Unit
 ) {
-    val isCurrentPlaying = playbackState !is AudioPlayerManager.PlaybackState.Idle &&
-            playbackState !is AudioPlayerManager.PlaybackState.Completed
+    val isPlayingThis = when (playbackState) {
+        is AudioPlayerManager.PlaybackState.Playing -> playbackState.path == recording.filePath
+        is AudioPlayerManager.PlaybackState.Paused -> playbackState.path == recording.filePath
+        else -> false
+    }
+
+    val isCurrentPlaying = isPlayingThis && playbackState is AudioPlayerManager.PlaybackState.Playing
 
     val currentPosMs = when (val state = playbackState) {
-        is AudioPlayerManager.PlaybackState.Playing -> state.currentPositionMs
-        is AudioPlayerManager.PlaybackState.Paused -> state.currentPositionMs
+        is AudioPlayerManager.PlaybackState.Playing -> if (state.path == recording.filePath) state.currentPositionMs else 0
+        is AudioPlayerManager.PlaybackState.Paused -> if (state.path == recording.filePath) state.currentPositionMs else 0
         else -> 0
     }
 
     val durationMs = when (val state = playbackState) {
-        is AudioPlayerManager.PlaybackState.Playing -> state.durationMs
-        is AudioPlayerManager.PlaybackState.Paused -> state.durationMs
+        is AudioPlayerManager.PlaybackState.Playing -> if (state.path == recording.filePath) state.durationMs else (recording.durationSec * 1000)
+        is AudioPlayerManager.PlaybackState.Paused -> if (state.path == recording.filePath) state.durationMs else (recording.durationSec * 1000)
         else -> recording.durationSec * 1000
     }
 
@@ -1898,9 +1903,11 @@ fun AudioPlayerSection(
             // Main Playback Button
             IconButton(
                 onClick = {
-                    when (playbackState) {
-                        is AudioPlayerManager.PlaybackState.Playing -> onPause()
-                        is AudioPlayerManager.PlaybackState.Paused -> onResume()
+                    val isPlaying = playbackState is AudioPlayerManager.PlaybackState.Playing && playbackState.path == recording.filePath
+                    val isPaused = playbackState is AudioPlayerManager.PlaybackState.Paused && playbackState.path == recording.filePath
+                    when {
+                        isPlaying -> onPause()
+                        isPaused -> onResume()
                         else -> onPlay()
                     }
                 },
@@ -1911,12 +1918,12 @@ fun AudioPlayerSection(
                     .testTag("play_pause_button")
             ) {
                 Icon(
-                    imageVector = if (playbackState is AudioPlayerManager.PlaybackState.Playing) {
+                    imageVector = if (isCurrentPlaying) {
                         Icons.Default.Close
                     } else {
                         Icons.Default.PlayArrow
                     },
-                    contentDescription = if (playbackState is AudioPlayerManager.PlaybackState.Playing) "Pause" else "Play",
+                    contentDescription = if (isCurrentPlaying) "Pause" else "Play",
                     tint = Color.White,
                     modifier = Modifier.size(28.dp)
                 )
