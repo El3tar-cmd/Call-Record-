@@ -1,5 +1,7 @@
 package com.example.data.gemini
 
+import android.util.Base64
+import java.io.File
 import android.util.Log
 import com.example.BuildConfig
 import kotlinx.coroutines.Dispatchers
@@ -40,13 +42,27 @@ object GeminiClient {
         callerName: String,
         source: String,
         durationSec: Int,
-        userNotes: String?
+        userNotes: String?,
+        audioFilePath: String? = null
     ): String = withContext(Dispatchers.IO) {
         if (!isKeyConfigured()) {
             return@withContext getOfflineMockTranscript(callerName, source, durationSec, userNotes)
         }
 
-        val prompt = """
+        val prompt = if (audioFilePath != null && File(audioFilePath).exists()) {
+            """
+            قم بتفريغ المقطع الصوتي المرفق لهذه المكالمة الهاتفية إلى نص مكتوب باللغة العربية.
+            المعلومات المتاحة عن المكالمة:
+            - اسم الطرف الآخر: $callerName
+            - منصة الاتصال: $source
+            - ملاحظات المستخدم أو سياق المكالمة: ${userNotes ?: "لا توجد ملاحظات إضافية"}
+            
+            الشروط:
+            1. استخدم تنسيق المتحدثين بوضوح مثل: "المتصل ($callerName): [نص الكلام]" و "أنت: [نص الكلام]".
+            2. لا تذكر أي نصوص تمهيدية أو استهلالية خارج نص الحوار نفسه. ابدأ بكتابة تفريغ المكالمة مباشرة.
+            """.trimIndent()
+        } else {
+            """
             اكتب نص حوار (ترجمة/تفريغ صوتي) مفصل واحترافي باللغة العربية لمكالمة هاتفية مسجلة بالكامل.
             المعلومات المتاحة عن المكالمة:
             - اسم الطرف الآخر: $callerName
@@ -62,10 +78,11 @@ object GeminiClient {
             3. اجعل الحوار يبدو واقعياً جداً واحترافياً يحتوي على تفاصيل دقيقة وتفاعلية تناسب مدة المكالمة ($durationSec ثانية).
             4. اكتب الحوار باللغة العربية الفصحى المبسطة أو اللهجة المصرية/الخليجية البيضاء المفهومة جداً.
             5. لا تذكر أي نصوص تمهيدية أو استهلالية خارج نص الحوار نفسه. ابدأ بكتابة تفريغ المكالمة مباشرة.
-        """.trimIndent()
+            """.trimIndent()
+        }
 
         try {
-            return@withContext callGeminiApi(prompt)
+            return@withContext callGeminiApi(prompt, audioFilePath)
         } catch (e: Exception) {
             Log.e(TAG, "Error generating transcript via Gemini", e)
             return@withContext getOfflineMockTranscript(callerName, source, durationSec, userNotes)
@@ -117,12 +134,30 @@ object GeminiClient {
         }
     }
 
-    private suspend fun callGeminiApi(prompt: String): String {
+    private suspend fun callGeminiApi(prompt: String, audioFilePath: String? = null): String {
         val keyToUse = apiKey.ifEmpty { BuildConfig.GEMINI_API_KEY }
         val url = "$BASE_URL?key=$keyToUse"
 
-        val requestPart = JSONObject().put("text", prompt)
-        val partArray = JSONArray().put(requestPart)
+        val partArray = JSONArray()
+        partArray.put(JSONObject().put("text", prompt))
+
+        if (audioFilePath != null) {
+            val file = File(audioFilePath)
+            if (file.exists()) {
+                try {
+                    val bytes = file.readBytes()
+                    val base64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
+                    val inlineDataObj = JSONObject().apply {
+                        put("mime_type", "audio/mp4") // Assuming m4a/mp4 audio
+                        put("data", base64)
+                    }
+                    partArray.put(JSONObject().put("inline_data", inlineDataObj))
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error encoding audio file", e)
+                }
+            }
+        }
+
         val contentObj = JSONObject().put("parts", partArray)
         val contentArray = JSONArray().put(contentObj)
         val requestBodyJson = JSONObject().put("contents", contentArray)

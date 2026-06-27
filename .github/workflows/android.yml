@@ -24,17 +24,18 @@ jobs:
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v4
 
-    - name: Setup Debug Keystore
+    - name: Setup Release Keystore
       run: |
-        if [ -f debug.keystore.base64 ]; then
-          echo "Decoding debug.keystore from base64..."
-          base64 -d debug.keystore.base64 > debug.keystore
-        else
-          echo "debug.keystore.base64 not found. Generating a new debug keystore..."
-          keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+        if [ ! -f my-upload-key.jks ]; then
+          echo "Generating a new release keystore for CI..."
+          keytool -genkey -v -keystore my-upload-key.jks -storepass android -alias upload -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Release,O=Android,C=US"
         fi
 
     - name: Build Release APK
+      env:
+        KEYSTORE_PATH: my-upload-key.jks
+        STORE_PASSWORD: android
+        KEY_PASSWORD: android
       run: gradle assembleRelease --no-daemon
 
     - name: Upload APK

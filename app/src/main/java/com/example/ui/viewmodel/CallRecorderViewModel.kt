@@ -305,7 +305,8 @@ class CallRecorderViewModel(application: Application) : AndroidViewModel(applica
                     callerName = recording.title,
                     source = recording.source,
                     durationSec = recording.durationSec,
-                    userNotes = recording.notes
+                    userNotes = recording.notes,
+                    audioFilePath = recording.filePath
                 )
                 
                 // Save to DB
