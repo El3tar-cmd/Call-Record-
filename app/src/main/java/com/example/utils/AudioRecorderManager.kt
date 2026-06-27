@@ -2,6 +2,8 @@ package com.example.utils
 
 import android.content.Context
 import android.media.MediaRecorder
+import android.media.audiofx.AutomaticGainControl
+import android.media.audiofx.NoiseSuppressor
 import android.os.Build
 import android.util.Log
 import java.io.File
@@ -13,6 +15,28 @@ class AudioRecorderManager(private val context: Context) {
     private var isRecording = false
     private var startTimeMillis: Long = 0L
 
+    /**
+     * دالة لتفعيل خاصية كسب الصوت التلقائي (AGC) وإلغاء الضجيج (NS) برمجياً.
+     * ملاحظة: هذه الدالة تعمل عند استخدام AudioRecord لأنها تتطلب audioSessionId.
+     * في MediaRecorder، استخدام VOICE_COMMUNICATION كـ AudioSource يفعل هذه الخصائص تلقائياً على مستوى النظام.
+     */
+    fun applyAudioEffectsAndGain(audioSessionId: Int) {
+        try {
+            if (AutomaticGainControl.isAvailable()) {
+                val agc = AutomaticGainControl.create(audioSessionId)
+                agc?.enabled = true
+                Log.d(TAG, "AutomaticGainControl enabled successfully")
+            }
+            if (NoiseSuppressor.isAvailable()) {
+                val ns = NoiseSuppressor.create(audioSessionId)
+                ns?.enabled = true
+                Log.d(TAG, "NoiseSuppressor enabled successfully")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error applying audio effects", e)
+        }
+    }
+
     fun startRecording(fileNamePrefix: String, isCallRecording: Boolean = false): File? {
         if (isRecording) return currentFile
 
@@ -23,8 +47,8 @@ class AudioRecorderManager(private val context: Context) {
             val sourcesToTry = if (isCallRecording) {
                 listOf(
                     MediaRecorder.AudioSource.VOICE_CALL,
+                    MediaRecorder.AudioSource.VOICE_COMMUNICATION, // الأفضل لأنه يفعل الـ AGC و NS تلقائياً
                     MediaRecorder.AudioSource.VOICE_RECOGNITION,
-                    MediaRecorder.AudioSource.VOICE_COMMUNICATION,
                     MediaRecorder.AudioSource.MIC,
                     MediaRecorder.AudioSource.CAMCORDER
                 )
@@ -48,8 +72,9 @@ class AudioRecorderManager(private val context: Context) {
                         setAudioSource(source)
                         setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
                         setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
-                        setAudioSamplingRate(44100)
-                        setAudioEncodingBitRate(64000)
+                        // رفع جودة الصوت وكسب المايكروفون لتعزيز التقاط صوت الطرف الثاني
+                        setAudioSamplingRate(48000)
+                        setAudioEncodingBitRate(192000)
                         setOutputFile(audioFile.absolutePath)
                         prepare()
                         start()
