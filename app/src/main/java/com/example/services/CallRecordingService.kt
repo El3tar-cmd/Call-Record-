@@ -93,27 +93,6 @@ class CallRecordingService : Service() {
         val prefix = if (direction == "INBOUND") "call_in" else "call_out"
         
         serviceScope.launch {
-            // Force Speaker On and max volume for Voice Call to bypass mic silence
-            val audioManager = getSystemService(Context.AUDIO_SERVICE) as? android.media.AudioManager
-            var previousSpeakerState = false
-            var previousMode = android.media.AudioManager.MODE_NORMAL
-            
-            try {
-                if (audioManager != null) {
-                    previousSpeakerState = audioManager.isSpeakerphoneOn
-                    previousMode = audioManager.mode
-                    
-                    audioManager.mode = android.media.AudioManager.MODE_IN_COMMUNICATION
-                    audioManager.isSpeakerphoneOn = true
-                    
-                    // Optional: Maximize volume of voice call stream to capture better audio
-                    val maxVol = audioManager.getStreamMaxVolume(android.media.AudioManager.STREAM_VOICE_CALL)
-                    audioManager.setStreamVolume(android.media.AudioManager.STREAM_VOICE_CALL, maxVol, 0)
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to configure audio manager", e)
-            }
-
             // Delay to allow the dialer's audio routing to settle and our MainActivity to come to foreground
             delay(1500)
             
@@ -129,21 +108,11 @@ class CallRecordingService : Service() {
                 CallStateTracker.activeFilePath.value = file.absolutePath
                 CallStateTracker.amplitudeList.value = emptyList()
 
-                // Save initial audio states for restoration later
-                CallStateTracker.initialSpeakerState = previousSpeakerState
-                CallStateTracker.initialAudioMode = previousMode
-
                 // Start active monitoring timers
                 startTimers()
                 Log.d(TAG, "Call recording started for $resolvedName")
             } else {
                 Log.e(TAG, "Failed to start call recording.")
-                
-                try {
-                    audioManager?.isSpeakerphoneOn = previousSpeakerState
-                    audioManager?.mode = previousMode
-                } catch (e: Exception) {}
-
                 stopSelf()
             }
         }
@@ -157,17 +126,6 @@ class CallRecordingService : Service() {
 
         stopTimers()
         val result = recorderManager.stopRecording()
-        
-        // Restore Audio Manager state
-        try {
-            val audioManager = getSystemService(Context.AUDIO_SERVICE) as? android.media.AudioManager
-            if (audioManager != null) {
-                audioManager.isSpeakerphoneOn = CallStateTracker.initialSpeakerState
-                audioManager.mode = CallStateTracker.initialAudioMode
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to restore audio manager state", e)
-        }
         
         val filePath = CallStateTracker.activeFilePath.value
         val callerName = CallStateTracker.callerName.value
