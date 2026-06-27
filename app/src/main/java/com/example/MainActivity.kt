@@ -267,6 +267,23 @@ fun SajilAppMainScreen(
         )
     }
 
+    var hasAccessibilityPermission by remember {
+        mutableStateOf(com.example.services.CallRecordingAccessibilityService.isServiceEnabled)
+    }
+
+    val checkAccessibilityPermission = {
+        hasAccessibilityPermission = com.example.services.CallRecordingAccessibilityService.isServiceEnabled
+    }
+
+    val requestAccessibilityPermission = {
+        try {
+            val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+            context.startActivity(intent)
+        } catch (e: Exception) {
+            // Ignore
+        }
+    }
+
     val requestBatteryOptimizationExemption = {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             try {
@@ -300,6 +317,7 @@ fun SajilAppMainScreen(
 
     LaunchedEffect(Unit) {
         checkBatteryOptimization()
+        checkAccessibilityPermission()
         val permissionsToRequest = mutableListOf<String>()
         if (!hasMicPermission) permissionsToRequest.add(Manifest.permission.RECORD_AUDIO)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !hasNotificationPermission) {
@@ -411,6 +429,7 @@ fun SajilAppMainScreen(
                         hasCallLogPermission = hasCallLogPermission,
                         isIgnoringBatteryOptimizations = isIgnoringBatteryOptimizations,
                         hasOverlayPermission = hasOverlayPermission,
+                        hasAccessibilityPermission = hasAccessibilityPermission,
                         onRequestPermissions = {
                             val permissions = mutableListOf(
                                 Manifest.permission.RECORD_AUDIO,
@@ -427,6 +446,9 @@ fun SajilAppMainScreen(
                         },
                         onRequestOverlayPermission = {
                             requestOverlayPermission()
+                        },
+                        onRequestAccessibilityPermission = {
+                            requestAccessibilityPermission()
                         }
                     )
                 }
@@ -1226,9 +1248,11 @@ fun PermissionsGuideTab(
     hasCallLogPermission: Boolean,
     isIgnoringBatteryOptimizations: Boolean,
     hasOverlayPermission: Boolean,
+    hasAccessibilityPermission: Boolean,
     onRequestPermissions: () -> Unit,
     onRequestBatteryExemption: () -> Unit,
-    onRequestOverlayPermission: () -> Unit
+    onRequestOverlayPermission: () -> Unit,
+    onRequestAccessibilityPermission: () -> Unit
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -1469,6 +1493,43 @@ fun PermissionsGuideTab(
                             Text(
                                 text = if (hasOverlayPermission) "مفعلة" else "تفعيل الآن",
                                 color = if (hasOverlayPermission) InboundCallColor else MicRecordingColor,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    // Permission 7: Accessibility Service
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.Info,
+                                contentDescription = "Accessibility Permission",
+                                tint = if (hasAccessibilityPermission) InboundCallColor else MicRecordingColor,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("إمكانية الوصول (Accessibility)", color = HighDensityText, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                                Text("ضرورية لتسجيل الصوت أثناء المكالمات بكفاءة", color = HighDensitySubText, fontSize = 11.sp)
+                            }
+                        }
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(if (hasAccessibilityPermission) InboundCallColor.copy(alpha = 0.15f) else MicRecordingColor.copy(alpha = 0.15f))
+                                .clickable { onRequestAccessibilityPermission() }
+                                .padding(horizontal = 10.dp, vertical = 6.dp)
+                        ) {
+                            Text(
+                                text = if (hasAccessibilityPermission) "مفعلة" else "تفعيل الآن",
+                                color = if (hasAccessibilityPermission) InboundCallColor else MicRecordingColor,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold
                             )
