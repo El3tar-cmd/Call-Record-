@@ -1,21 +1,28 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+# Sajil - مسجل المكالمات الذكي (Smart Call Recorder)
 
-# Run and deploy your AI Studio app
+Sajil is a professional Android application designed for recording standard phone calls, as well as calls from popular messaging apps (WhatsApp, Messenger). It features automatic speech-to-text transcription and AI-powered call summarization.
 
-This contains everything you need to run your app locally.
+## Features
 
-View your app in AI Studio: https://ai.studio/apps/7c9e6546-e9a4-483a-b3de-912c085e04de
+- **Automatic Call Recording:** Seamlessly records incoming and outgoing cellular calls.
+- **AI Speech-to-Text & Summarization:** Automatically transcribes and summarizes the content of your calls using Gemini AI.
+- **Material Design 3:** A clean, modern interface featuring a dark slate theme with fluid animations.
+- **Local Persistence:** Securely stores your audio recordings and call logs locally using Room Database.
+- **Playback Controls:** Built-in audio player with waveform visualization.
 
-## Run Locally
+## Permissions Required
 
-**Prerequisites:**  [Android Studio](https://developer.android.com/studio)
+For the app to function properly and record calls in the background, the following permissions are requested:
+- `Microphone` (RECORD_AUDIO)
+- `Phone State` (READ_PHONE_STATE)
+- `Call Logs` (READ_CALL_LOG)
+- `Notifications` (POST_NOTIFICATIONS)
+- `Display over other apps` (SYSTEM_ALERT_WINDOW)
 
+## Technologies Used
 
-1. Open Android Studio
-2. Select **Open** and choose the directory containing this project
-3. Allow Android Studio to fix any incompatibilities as it imports the project.
-4. Create a file named `.env` in the project directory and set `GEMINI_API_KEY` in that file to your Gemini API key (see `.env.example` for an example)
-5. Remove this line from the app's `build.gradle.kts` file: `signingConfig = signingConfigs.getByName("debugConfig")`
-6. Run the app on an emulator or physical device
+- **Language:** Kotlin
+- **UI Framework:** Jetpack Compose (Material Design 3)
+- **Database:** Room
+- **Media:** `MediaRecorder`, `MediaPlayer`
+- **Architecture:** MVVM, Coroutines, Flow
