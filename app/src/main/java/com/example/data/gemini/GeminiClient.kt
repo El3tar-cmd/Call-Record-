@@ -194,27 +194,14 @@ object GeminiClient {
         durationSec: Int,
         userNotes: String?
     ): String {
-        val platformAr = when (source.uppercase()) {
-            "WHATSAPP" -> "واتساب"
-            "MESSENGER" -> "ماسينجر"
-            "CELLULAR" -> "الهاتف العادي"
-            else -> "تسجيل عام"
-        }
-        return """
-            المتصل ($callerName): أهلاً بك، أتصل بك بخصوص موضوعنا المشترك عبر $platformAr.
-            أنت: مرحباً بك يا $callerName. نعم، تفضل، أنا أستمع إليك.
-            المتصل ($callerName): أردت التأكيد على مراجعة الملفات المرسلة والتأكد من إتمام المهمة المطلوبة. مدة مكالمتنا الآن $durationSec ثانية وهو وقت كافٍ لإنهاء هذا الاتفاق.
-            أنت: ممتاز، سأقوم بمراجعة الملاحظات ${userNotes ?: "الخاصة بالعمل"} والرد عليك فوراً.
-            المتصل ($callerName): رائع، أتمنى لك يوماً سعيداً. مع السلامة.
-            أنت: مع السلامة، في أمان الله.
-        """.trimIndent()
+        return "⚠️ يرجى إضافة مفتاح API الخاص بـ Gemini في الإعدادات لتفعيل خاصية التفريغ الذكي للمكالمة الحقيقية."
     }
 
     private fun getOfflineMockAnalysis(transcript: String): AnalysisResult {
         return AnalysisResult(
-            summary = "مكالمة هاتفية للتأكيد على مراجعة الملفات والتنسيق لإنهاء المهام المشتركة بين الطرفين.",
-            sentiment = "إيجابي",
-            importantPoints = "• مراجعة الملفات المرسلة فوراً.\n• التأكيد على الاتفاق والتنسيق المشترك.\n• إنهاء العمل بحسب الجدول المتفق عليه."
+            summary = "⚠️ يرجى إضافة مفتاح API الخاص بـ Gemini في الإعدادات لتفعيل التلخيص الذكي.",
+            sentiment = "غير متاح",
+            importantPoints = "• يرجى إضافة مفتاح API الخاص بـ Gemini في الإعدادات."
         )
     }
 
