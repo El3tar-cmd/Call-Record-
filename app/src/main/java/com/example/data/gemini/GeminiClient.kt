@@ -23,11 +23,13 @@ object GeminiClient {
         .writeTimeout(60, TimeUnit.SECONDS)
         .build()
 
+    var apiKey: String = ""
+
     /**
      * Checks if the Gemini API key is configured and not the placeholder.
      */
     fun isKeyConfigured(): Boolean {
-        val key = BuildConfig.GEMINI_API_KEY
+        val key = apiKey.ifEmpty { BuildConfig.GEMINI_API_KEY }
         return key.isNotEmpty() && key != "MY_GEMINI_API_KEY" && !key.contains("PLACEHOLDER")
     }
 
@@ -116,8 +118,8 @@ object GeminiClient {
     }
 
     private suspend fun callGeminiApi(prompt: String): String {
-        val apiKey = BuildConfig.GEMINI_API_KEY
-        val url = "$BASE_URL?key=$apiKey"
+        val keyToUse = apiKey.ifEmpty { BuildConfig.GEMINI_API_KEY }
+        val url = "$BASE_URL?key=$keyToUse"
 
         val requestPart = JSONObject().put("text", prompt)
         val partArray = JSONArray().put(requestPart)

@@ -177,6 +177,14 @@ fun SajilAppMainScreen(
     val context = LocalContext.current
     var selectedTab by remember { mutableIntStateOf(0) }
 
+    val prefs = remember { context.getSharedPreferences("sajil_prefs", Context.MODE_PRIVATE) }
+    var geminiApiKey by remember { mutableStateOf(prefs.getString("gemini_api_key", "") ?: "") }
+
+    LaunchedEffect(geminiApiKey) {
+        prefs.edit().putString("gemini_api_key", geminiApiKey).apply()
+        com.example.data.gemini.GeminiClient.apiKey = geminiApiKey
+    }
+
     // Collect variables from ViewModel
     val activeSimulatedCall by viewModel.activeSimulatedCall.collectAsState()
     val isRecordingActive by viewModel.isRecordingActive.collectAsState()
@@ -356,7 +364,7 @@ fun SajilAppMainScreen(
             // Dynamic Tabs
             TabRow(
                 selectedTabIndex = selectedTab,
-                containerColor = Color.White,
+                containerColor = com.example.ui.theme.HighDensityCardBg,
                 contentColor = HighDensitySubText,
                 indicator = { tabPositions ->
                     TabRowDefaults.SecondaryIndicator(
@@ -431,6 +439,8 @@ fun SajilAppMainScreen(
                         isIgnoringBatteryOptimizations = isIgnoringBatteryOptimizations,
                         hasOverlayPermission = hasOverlayPermission,
                         hasAccessibilityPermission = hasAccessibilityPermission,
+                        geminiApiKey = geminiApiKey,
+                        onApiKeyChange = { geminiApiKey = it },
                         onRequestPermissions = {
                             val permissions = mutableListOf(
                                 Manifest.permission.RECORD_AUDIO,
@@ -647,8 +657,8 @@ fun RecordingsListTab(viewModel: CallRecorderViewModel) {
                 .fillMaxWidth()
                 .testTag("search_input"),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = Color.White,
-                unfocusedContainerColor = Color.White,
+                focusedContainerColor = com.example.ui.theme.HighDensityCardBg,
+                unfocusedContainerColor = com.example.ui.theme.HighDensityCardBg,
                 focusedBorderColor = HighDensityPrimary,
                 unfocusedBorderColor = HighDensityBorder,
                 focusedTextColor = HighDensityText,
@@ -670,7 +680,7 @@ fun RecordingsListTab(viewModel: CallRecorderViewModel) {
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(24.dp))
-                        .background(if (isSelected) HighDensityPrimary else Color.White)
+                        .background(if (isSelected) HighDensityPrimary else com.example.ui.theme.HighDensityCardBg)
                         .then(
                             if (!isSelected) Modifier.border(1.dp, HighDensityBorder, RoundedCornerShape(24.dp))
                             else Modifier
@@ -680,7 +690,7 @@ fun RecordingsListTab(viewModel: CallRecorderViewModel) {
                 ) {
                     Text(
                         text = filter.label,
-                        color = if (isSelected) Color.White else HighDensitySubText,
+                        color = if (isSelected) com.example.ui.theme.HighDensityOnPrimary else HighDensitySubText,
                         fontSize = 12.sp,
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                     )
@@ -736,7 +746,7 @@ fun RecordingsListTab(viewModel: CallRecorderViewModel) {
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(16.dp))
-                        .background(Color.White.copy(alpha = 0.6f))
+                        .background(com.example.ui.theme.HighDensityCardBg.copy(alpha = 0.6f))
                         .padding(10.dp)
                 ) {
                     Icon(
@@ -852,7 +862,7 @@ fun RecordingItemCard(
             .border(1.dp, HighDensityBorder, RoundedCornerShape(16.dp))
             .clickable { onClick() }
             .testTag("recording_item_${recording.id}"),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = com.example.ui.theme.HighDensityCardBg),
         shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
@@ -1041,7 +1051,7 @@ fun RecorderAndSimTab(
         // Section A: Micro recording box (Manual Voice Memos)
         item {
             Card(
-                colors = CardDefaults.cardColors(containerColor = Color.White),
+                colors = CardDefaults.cardColors(containerColor = com.example.ui.theme.HighDensityCardBg),
                 shape = RoundedCornerShape(18.dp),
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1109,9 +1119,9 @@ fun RecorderAndSimTab(
                             colors = ButtonDefaults.buttonColors(containerColor = MicRecordingColor),
                             shape = RoundedCornerShape(24.dp)
                         ) {
-                            Icon(Icons.Default.Close, contentDescription = "Stop", tint = Color.White)
+                            Icon(Icons.Default.Close, contentDescription = "Stop", tint = com.example.ui.theme.HighDensityOnPrimary)
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("إيقاف وحفظ التسجيل", color = Color.White, fontWeight = FontWeight.Bold)
+                            Text("إيقاف وحفظ التسجيل", color = com.example.ui.theme.HighDensityOnPrimary, fontWeight = FontWeight.Bold)
                         }
                     } else {
                         // Inactive, trigger record
@@ -1151,7 +1161,7 @@ fun RecorderAndSimTab(
         // Section B: Automatic background recording controller status indicator & tips
         item {
             Card(
-                colors = CardDefaults.cardColors(containerColor = Color.White),
+                colors = CardDefaults.cardColors(containerColor = com.example.ui.theme.HighDensityCardBg),
                 shape = RoundedCornerShape(18.dp),
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1264,11 +1274,11 @@ fun RecorderAndSimTab(
                             .height(50.dp)
                             .testTag("start_quick_test_button")
                     ) {
-                        Icon(Icons.Default.Call, contentDescription = "Launch Test", tint = Color.White)
+                        Icon(Icons.Default.Call, contentDescription = "Launch Test", tint = com.example.ui.theme.HighDensityOnPrimary)
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = "تشغيل مكالمة اختبارية وتجربة التسجيل",
-                            color = Color.White,
+                            color = com.example.ui.theme.HighDensityOnPrimary,
                             fontWeight = FontWeight.Bold,
                             fontSize = 13.sp
                         )
@@ -1291,6 +1301,8 @@ fun PermissionsGuideTab(
     isIgnoringBatteryOptimizations: Boolean,
     hasOverlayPermission: Boolean,
     hasAccessibilityPermission: Boolean,
+    geminiApiKey: String,
+    onApiKeyChange: (String) -> Unit,
     onRequestPermissions: () -> Unit,
     onRequestBatteryExemption: () -> Unit,
     onRequestOverlayPermission: () -> Unit,
@@ -1303,7 +1315,7 @@ fun PermissionsGuideTab(
         // Status Checkers
         item {
             Card(
-                colors = CardDefaults.cardColors(containerColor = Color.White),
+                colors = CardDefaults.cardColors(containerColor = com.example.ui.theme.HighDensityCardBg),
                 shape = RoundedCornerShape(18.dp),
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1586,7 +1598,7 @@ fun PermissionsGuideTab(
                             shape = RoundedCornerShape(12.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("منح الصلاحيات المطلوبة الآن", color = Color.White, fontWeight = FontWeight.Bold)
+                            Text("منح الصلاحيات المطلوبة الآن", color = com.example.ui.theme.HighDensityOnPrimary, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -1596,7 +1608,7 @@ fun PermissionsGuideTab(
         // Explanation text card
         item {
             Card(
-                colors = CardDefaults.cardColors(containerColor = Color.White),
+                colors = CardDefaults.cardColors(containerColor = com.example.ui.theme.HighDensityCardBg),
                 shape = RoundedCornerShape(18.dp),
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1624,43 +1636,94 @@ fun PermissionsGuideTab(
             }
         }
 
+        // Gemini API Key Card
+        item {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = com.example.ui.theme.HighDensityCardBg),
+                shape = RoundedCornerShape(18.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, HighDensityBorder, RoundedCornerShape(18.dp))
+            ) {
+                Column(modifier = Modifier.padding(18.dp)) {
+                    Text(
+                        text = "إعدادات الذكاء الاصطناعي (Gemini)",
+                        color = HighDensityText,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "قم بإضافة مفتاح API الخاص بك لتفعيل التلخيص الحقيقي والتفريغ الذكي للمكالمات بدلا من التلخيص الوهمي.",
+                        color = HighDensitySubText,
+                        fontSize = 11.sp
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    androidx.compose.material3.OutlinedTextField(
+                        value = geminiApiKey,
+                        onValueChange = onApiKeyChange,
+                        modifier = Modifier.fillMaxWidth(),
+                        placeholder = { Text("أدخل Gemini API Key هنا...", color = HighDensitySubText.copy(alpha = 0.6f), fontSize = 11.sp) },
+                        colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = HighDensityPrimary,
+                            unfocusedBorderColor = HighDensityBorder,
+                            focusedTextColor = HighDensityText,
+                            unfocusedTextColor = HighDensityText,
+                        ),
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                }
+            }
+        }
+
         // Developer Info Card
         item {
             Card(
-                colors = CardDefaults.cardColors(containerColor = Color.White),
+                colors = CardDefaults.cardColors(containerColor = com.example.ui.theme.HighDensityCardBg),
                 shape = RoundedCornerShape(18.dp),
                 modifier = Modifier
                     .fillMaxWidth()
                     .border(1.dp, HighDensityBorder, RoundedCornerShape(18.dp))
             ) {
                 Column(
-                    modifier = Modifier.padding(18.dp),
+                    modifier = Modifier.padding(18.dp).fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
                         text = "مطور التطبيق",
                         color = HighDensityText,
                         fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = "Eng Abdelrahman Mahmoud",
                         color = HighDensityPrimary,
                         fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = "DevHive",
                         color = HighDensitySubText,
                         fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium
+                        fontWeight = FontWeight.Medium,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
                     )
                     Text(
                         text = "DevHive040@gmail.com",
                         color = HighDensitySubText,
-                        fontSize = 12.sp
+                        fontSize = 12.sp,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
                     )
                 }
             }
@@ -1698,7 +1761,7 @@ fun RecordingDetailsPanel(
                 .align(Alignment.BottomCenter)
                 .clickable(enabled = false) {}
                 .testTag("details_panel"),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
+            colors = CardDefaults.cardColors(containerColor = com.example.ui.theme.HighDensityCardBg),
             shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
         ) {
             Column(
@@ -1793,7 +1856,7 @@ fun RecordingDetailsPanel(
                     // Notes Section
                     item {
                         Card(
-                            colors = CardDefaults.cardColors(containerColor = Color.White),
+                            colors = CardDefaults.cardColors(containerColor = com.example.ui.theme.HighDensityCardBg),
                             shape = RoundedCornerShape(14.dp),
                             modifier = Modifier.border(1.dp, HighDensityBorder, RoundedCornerShape(14.dp))
                         ) {
@@ -1814,8 +1877,8 @@ fun RecordingDetailsPanel(
                                         unfocusedBorderColor = HighDensityBorder,
                                         focusedTextColor = HighDensityText,
                                         unfocusedTextColor = HighDensityText,
-                                        focusedContainerColor = Color.White,
-                                        unfocusedContainerColor = Color.White
+                                        focusedContainerColor = com.example.ui.theme.HighDensityCardBg,
+                                        unfocusedContainerColor = com.example.ui.theme.HighDensityCardBg
                                     ),
                                     modifier = Modifier.fillMaxWidth(),
                                     maxLines = 2,
@@ -1828,7 +1891,7 @@ fun RecordingDetailsPanel(
                                     shape = RoundedCornerShape(8.dp),
                                     modifier = Modifier.align(Alignment.End)
                                 ) {
-                                    Text("حفظ الملاحظة", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                    Text("حفظ الملاحظة", color = com.example.ui.theme.HighDensityOnPrimary, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                                 }
                             }
                         }
@@ -1837,7 +1900,7 @@ fun RecordingDetailsPanel(
                     // Advanced AI Transcription / Summarization State block
                     item {
                         Card(
-                            colors = CardDefaults.cardColors(containerColor = Color.White),
+                            colors = CardDefaults.cardColors(containerColor = com.example.ui.theme.HighDensityCardBg),
                             shape = RoundedCornerShape(14.dp),
                             modifier = Modifier.border(1.dp, HighDensityBorder, RoundedCornerShape(14.dp))
                         ) {
@@ -1915,11 +1978,11 @@ fun RecordingDetailsPanel(
                                             .fillMaxWidth()
                                             .testTag("ai_transcribe_button")
                                     ) {
-                                        Icon(Icons.Default.Star, contentDescription = "AI", tint = Color.White)
+                                        Icon(Icons.Default.Star, contentDescription = "AI", tint = com.example.ui.theme.HighDensityOnPrimary)
                                         Spacer(modifier = Modifier.width(8.dp))
                                         Text(
                                             "نسخ وتحليل المكالمة بالذكاء الاصطناعي",
-                                            color = Color.White,
+                                            color = com.example.ui.theme.HighDensityOnPrimary,
                                             fontWeight = FontWeight.Bold,
                                             fontSize = 12.sp
                                         )
@@ -2035,7 +2098,7 @@ fun AudioPlayerSection(
     val progress = if (durationMs > 0) currentPosMs.toFloat() / durationMs.toFloat() else 0f
 
     Card(
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = com.example.ui.theme.HighDensityCardBg),
         shape = RoundedCornerShape(14.dp),
         modifier = Modifier.border(1.dp, HighDensityBorder, RoundedCornerShape(14.dp))
     ) {
@@ -2064,7 +2127,7 @@ fun AudioPlayerSection(
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(6.dp))
-                                .background(if (isSelected) HighDensityPrimary else Color.White)
+                                .background(if (isSelected) HighDensityPrimary else com.example.ui.theme.HighDensityCardBg)
                                 .then(
                                     if (!isSelected) Modifier.border(1.dp, HighDensityBorder, RoundedCornerShape(6.dp))
                                     else Modifier
@@ -2074,7 +2137,7 @@ fun AudioPlayerSection(
                         ) {
                             Text(
                                 text = "${speed}x",
-                                color = if (isSelected) Color.White else HighDensitySubText,
+                                color = if (isSelected) com.example.ui.theme.HighDensityOnPrimary else HighDensitySubText,
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold
                             )
@@ -2144,7 +2207,7 @@ fun AudioPlayerSection(
                         Icons.Default.PlayArrow
                     },
                     contentDescription = if (isCurrentPlaying) "Pause" else "Play",
-                    tint = Color.White,
+                    tint = com.example.ui.theme.HighDensityOnPrimary,
                     modifier = Modifier.size(28.dp)
                 )
             }
