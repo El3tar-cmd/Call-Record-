@@ -102,6 +102,12 @@ class CallRecordingService : Service() {
                 CallStateTracker.initialAudioMode = audioManager.getStreamVolume(android.media.AudioManager.STREAM_VOICE_CALL)
                 val maxVolume = audioManager.getStreamMaxVolume(android.media.AudioManager.STREAM_VOICE_CALL)
                 audioManager.setStreamVolume(android.media.AudioManager.STREAM_VOICE_CALL, maxVolume, 0)
+                
+                // تفعيل وضع الاتصال عبر البلوتوث لالتقاط الصوت من السماعات (Headset) إن وجدت
+                if (audioManager.isBluetoothScoAvailableOffCall) {
+                    audioManager.startBluetoothSco()
+                    audioManager.isBluetoothScoOn = true
+                }
                 Log.d(TAG, "Call volume boosted to max ($maxVolume) to improve recording.")
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to boost volume", e)
@@ -142,6 +148,8 @@ class CallRecordingService : Service() {
         try {
             val audioManager = getSystemService(Context.AUDIO_SERVICE) as android.media.AudioManager
             audioManager.setStreamVolume(android.media.AudioManager.STREAM_VOICE_CALL, CallStateTracker.initialAudioMode, 0)
+            audioManager.isBluetoothScoOn = false
+            audioManager.stopBluetoothSco()
         } catch (e: Exception) {
             Log.e(TAG, "Failed to restore volume", e)
         }
