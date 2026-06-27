@@ -75,6 +75,8 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -1747,6 +1749,8 @@ fun RecordingDetailsPanel(
     val aiOperationState by viewModel.aiOperationState.collectAsState()
 
     var notesText by remember(recording.id) { mutableStateOf(recording.notes ?: "") }
+    var selectedTabIndex by remember { androidx.compose.runtime.mutableStateOf(0) }
+    val clipboardManager = androidx.compose.ui.platform.LocalClipboardManager.current
 
     Box(
         modifier = Modifier
@@ -1988,69 +1992,131 @@ fun RecordingDetailsPanel(
                                         )
                                     }
                                 } else {
-                                    // Display Transcript and Analysis elegantly!
+                                    // Display Transcript and Analysis elegantly with Tabs!
                                     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                                        // Transcript display
-                                        Column {
-                                            Text(
-                                                "التفريغ الحرفي للمكالمة:",
-                                                color = HighDensityPrimary,
-                                                fontSize = 12.sp,
-                                                fontWeight = FontWeight.Bold
+                                        androidx.compose.material3.TabRow(
+                                            selectedTabIndex = selectedTabIndex,
+                                            containerColor = Color.Transparent,
+                                            contentColor = HighDensityPrimary,
+                                            indicator = { tabPositions ->
+                                                androidx.compose.material3.TabRowDefaults.Indicator(
+                                                    modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTabIndex]),
+                                                    color = HighDensityPrimary
+                                                )
+                                            }
+                                        ) {
+                                            androidx.compose.material3.Tab(
+                                                selected = selectedTabIndex == 0,
+                                                onClick = { selectedTabIndex = 0 },
+                                                text = { Text("التفريغ الحرفي") }
                                             )
-                                            Spacer(modifier = Modifier.height(6.dp))
-                                            Box(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .clip(RoundedCornerShape(8.dp))
-                                                    .background(HighDensityBg)
-                                                    .border(1.dp, HighDensityBorder, RoundedCornerShape(8.dp))
-                                                    .padding(10.dp)
-                                            ) {
-                                                Text(
-                                                    text = recording.transcript ?: "",
-                                                    color = HighDensityText,
-                                                    fontSize = 11.sp,
-                                                    lineHeight = 18.sp
-                                                )
-                                            }
+                                            androidx.compose.material3.Tab(
+                                                selected = selectedTabIndex == 1,
+                                                onClick = { selectedTabIndex = 1 },
+                                                text = { Text("التلخيص") }
+                                            )
                                         }
 
-                                        // Summary display
-                                        recording.summary?.let { summary ->
+                                        if (selectedTabIndex == 0) {
+                                            // Transcript display
                                             Column {
-                                                Text(
-                                                    "ملخص المكالمة الذكي:",
-                                                    color = HighDensityPrimary,
-                                                    fontSize = 12.sp,
-                                                    fontWeight = FontWeight.Bold
-                                                )
-                                                Spacer(modifier = Modifier.height(4.dp))
-                                                Text(
-                                                    text = summary,
-                                                    color = HighDensityText,
-                                                    fontSize = 11.sp,
-                                                    lineHeight = 16.sp
-                                                )
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    Text(
+                                                        "التفريغ الحرفي للمكالمة:",
+                                                        color = HighDensityPrimary,
+                                                        fontSize = 12.sp,
+                                                        fontWeight = FontWeight.Bold
+                                                    )
+                                                    IconButton(onClick = {
+                                                        recording.transcript?.let { 
+                                                            clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(it))
+                                                        }
+                                                    }) {
+                                                        Icon(Icons.Default.ContentCopy, contentDescription = "نسخ", tint = HighDensityPrimary, modifier = Modifier.size(20.dp))
+                                                    }
+                                                }
+                                                Spacer(modifier = Modifier.height(6.dp))
+                                                Box(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .clip(RoundedCornerShape(8.dp))
+                                                        .background(HighDensityBg)
+                                                        .border(1.dp, HighDensityBorder, RoundedCornerShape(8.dp))
+                                                        .padding(10.dp)
+                                                ) {
+                                                    Text(
+                                                        text = recording.transcript ?: "",
+                                                        color = HighDensityText,
+                                                        fontSize = 11.sp,
+                                                        lineHeight = 18.sp
+                                                    )
+                                                }
                                             }
-                                        }
+                                        } else {
+                                            // Summary display
+                                            recording.summary?.let { summary ->
+                                                Column {
+                                                    Row(
+                                                        modifier = Modifier.fillMaxWidth(),
+                                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                                        verticalAlignment = Alignment.CenterVertically
+                                                    ) {
+                                                        Text(
+                                                            "ملخص المكالمة الذكي:",
+                                                            color = HighDensityPrimary,
+                                                            fontSize = 12.sp,
+                                                            fontWeight = FontWeight.Bold
+                                                        )
+                                                        IconButton(onClick = {
+                                                            clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(summary))
+                                                        }) {
+                                                            Icon(Icons.Default.ContentCopy, contentDescription = "نسخ", tint = HighDensityPrimary, modifier = Modifier.size(20.dp))
+                                                        }
+                                                    }
+                                                    Spacer(modifier = Modifier.height(4.dp))
+                                                    Text(
+                                                        text = summary,
+                                                        color = HighDensityText,
+                                                        fontSize = 11.sp,
+                                                        lineHeight = 16.sp
+                                                    )
+                                                }
+                                            }
 
-                                        // Important Points display
-                                        recording.importantPoints?.let { points ->
-                                            Column {
-                                                Text(
-                                                    "القرارات المتخذة والنقاط الهامة:",
-                                                    color = HighDensityPrimary,
-                                                    fontSize = 12.sp,
-                                                    fontWeight = FontWeight.Bold
-                                                )
-                                                Spacer(modifier = Modifier.height(4.dp))
-                                                Text(
-                                                    text = points,
-                                                    color = HighDensityText,
-                                                    fontSize = 11.sp,
-                                                    lineHeight = 16.sp
-                                                )
+                                            Spacer(modifier = Modifier.height(14.dp))
+
+                                            // Important Points display
+                                            recording.importantPoints?.let { points ->
+                                                Column {
+                                                    Row(
+                                                        modifier = Modifier.fillMaxWidth(),
+                                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                                        verticalAlignment = Alignment.CenterVertically
+                                                    ) {
+                                                        Text(
+                                                            "القرارات المتخذة والنقاط الهامة:",
+                                                            color = HighDensityPrimary,
+                                                            fontSize = 12.sp,
+                                                            fontWeight = FontWeight.Bold
+                                                        )
+                                                        IconButton(onClick = {
+                                                            clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(points))
+                                                        }) {
+                                                            Icon(Icons.Default.ContentCopy, contentDescription = "نسخ", tint = HighDensityPrimary, modifier = Modifier.size(20.dp))
+                                                        }
+                                                    }
+                                                    Spacer(modifier = Modifier.height(4.dp))
+                                                    Text(
+                                                        text = points,
+                                                        color = HighDensityText,
+                                                        fontSize = 11.sp,
+                                                        lineHeight = 16.sp
+                                                    )
+                                                }
                                             }
                                         }
                                     }
