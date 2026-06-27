@@ -46,11 +46,10 @@ class AudioRecorderManager(private val context: Context) {
 
             val sourcesToTry = if (isCallRecording) {
                 listOf(
+                    MediaRecorder.AudioSource.VOICE_RECOGNITION, // الأفضل مع خدمات الوصول لالتقاط صوت الطرفين
+                    MediaRecorder.AudioSource.VOICE_COMMUNICATION,
                     MediaRecorder.AudioSource.VOICE_CALL,
-                    MediaRecorder.AudioSource.VOICE_COMMUNICATION, // الأفضل لأنه يفعل الـ AGC و NS تلقائياً
-                    MediaRecorder.AudioSource.VOICE_RECOGNITION,
-                    MediaRecorder.AudioSource.MIC,
-                    MediaRecorder.AudioSource.CAMCORDER
+                    MediaRecorder.AudioSource.MIC
                 )
             } else {
                 listOf(MediaRecorder.AudioSource.MIC)

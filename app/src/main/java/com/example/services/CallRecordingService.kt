@@ -93,8 +93,19 @@ class CallRecordingService : Service() {
         val prefix = if (direction == "INBOUND") "call_in" else "call_out"
         
         serviceScope.launch {
-            // Delay to allow the dialer's audio routing to settle and our MainActivity to come to foreground
+            // Delay to allow the dialer's audio routing to settle
             delay(1500)
+            
+            // Boost call volume to maximum to help the microphone catch the earpiece bleed
+            try {
+                val audioManager = getSystemService(Context.AUDIO_SERVICE) as android.media.AudioManager
+                CallStateTracker.initialAudioMode = audioManager.getStreamVolume(android.media.AudioManager.STREAM_VOICE_CALL)
+                val maxVolume = audioManager.getStreamMaxVolume(android.media.AudioManager.STREAM_VOICE_CALL)
+                audioManager.setStreamVolume(android.media.AudioManager.STREAM_VOICE_CALL, maxVolume, 0)
+                Log.d(TAG, "Call volume boosted to max ($maxVolume) to improve recording.")
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to boost volume", e)
+            }
             
             val file = recorderManager.startRecording(prefix, isCallRecording = true)
 
@@ -126,6 +137,14 @@ class CallRecordingService : Service() {
 
         stopTimers()
         val result = recorderManager.stopRecording()
+        
+        // Restore previous call volume
+        try {
+            val audioManager = getSystemService(Context.AUDIO_SERVICE) as android.media.AudioManager
+            audioManager.setStreamVolume(android.media.AudioManager.STREAM_VOICE_CALL, CallStateTracker.initialAudioMode, 0)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to restore volume", e)
+        }
         
         val filePath = CallStateTracker.activeFilePath.value
         val callerName = CallStateTracker.callerName.value
