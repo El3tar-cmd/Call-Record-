@@ -58,6 +58,7 @@ import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
@@ -538,7 +539,7 @@ fun TopSajilHeader(
         ) {
             // Brand bee icon container matching the beautiful generated app logo
             Image(
-                painter = painterResource(id = R.drawable.img_app_icon_1782486409710),
+                painter = painterResource(id = R.drawable.sajil_app_icon_1782550631592),
                 contentDescription = "Logo",
                 modifier = Modifier
                     .size(40.dp)
@@ -773,6 +774,7 @@ fun RecordingsListTab(viewModel: CallRecorderViewModel) {
                 }
             }
         } else {
+            val context = LocalContext.current
             LazyColumn(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
@@ -781,7 +783,29 @@ fun RecordingsListTab(viewModel: CallRecorderViewModel) {
                     RecordingItemCard(
                         recording = rec,
                         onClick = { viewModel.selectRecording(rec) },
-                        onDelete = { viewModel.deleteRecording(rec) }
+                        onDelete = { viewModel.deleteRecording(rec) },
+                        onShare = {
+                            val file = java.io.File(rec.filePath)
+                            if (file.exists()) {
+                                try {
+                                    val uri = androidx.core.content.FileProvider.getUriForFile(
+                                        context,
+                                        "${context.packageName}.provider",
+                                        file
+                                    )
+                                    val intent = Intent(Intent.ACTION_SEND).apply {
+                                        type = "audio/*"
+                                        putExtra(Intent.EXTRA_STREAM, uri)
+                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                    }
+                                    context.startActivity(Intent.createChooser(intent, "مشاركة التسجيل"))
+                                } catch (e: Exception) {
+                                    Toast.makeText(context, "حدث خطأ أثناء المشاركة", Toast.LENGTH_SHORT).show()
+                                }
+                            } else {
+                                Toast.makeText(context, "الملف غير موجود", Toast.LENGTH_SHORT).show()
+                            }
+                        }
                     )
                 }
             }
@@ -793,7 +817,8 @@ fun RecordingsListTab(viewModel: CallRecorderViewModel) {
 fun RecordingItemCard(
     recording: Recording,
     onClick: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onShare: () -> Unit
 ) {
     val platformLabel = when (recording.source) {
         "WHATSAPP" -> "واتساب"
@@ -961,16 +986,33 @@ fun RecordingItemCard(
 
             Spacer(modifier = Modifier.width(8.dp))
 
-            // Delete action button
-            IconButton(
-                onClick = onDelete,
-                modifier = Modifier.size(24.dp)
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Icon(
-                    imageVector = Icons.Default.Delete,
-                    contentDescription = "Delete",
-                    tint = HighDensitySubText.copy(alpha = 0.5f)
-                )
+                // Share action button
+                IconButton(
+                    onClick = onShare,
+                    modifier = Modifier.size(24.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Share,
+                        contentDescription = "Share",
+                        tint = HighDensitySubText.copy(alpha = 0.5f)
+                    )
+                }
+
+                // Delete action button
+                IconButton(
+                    onClick = onDelete,
+                    modifier = Modifier.size(24.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Delete",
+                        tint = HighDensitySubText.copy(alpha = 0.5f)
+                    )
+                }
             }
         }
     }
@@ -1580,6 +1622,49 @@ fun PermissionsGuideTab(
                     )
                 }
             }
+        }
+
+        // Developer Info Card
+        item {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                shape = RoundedCornerShape(18.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, HighDensityBorder, RoundedCornerShape(18.dp))
+            ) {
+                Column(
+                    modifier = Modifier.padding(18.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "مطور التطبيق",
+                        color = HighDensityText,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Eng Abdelrahman Mahmoud",
+                        color = HighDensityPrimary,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "DevHive",
+                        color = HighDensitySubText,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Text(
+                        text = "DevHive040@gmail.com",
+                        color = HighDensitySubText,
+                        fontSize = 12.sp
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(20.dp))
         }
     }
 }
