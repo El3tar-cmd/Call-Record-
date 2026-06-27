@@ -22,6 +22,7 @@ class AudioRecorderManager(private val context: Context) {
 
             val sourcesToTry = if (isCallRecording) {
                 listOf(
+                    MediaRecorder.AudioSource.VOICE_CALL,
                     MediaRecorder.AudioSource.VOICE_RECOGNITION,
                     MediaRecorder.AudioSource.VOICE_COMMUNICATION,
                     MediaRecorder.AudioSource.MIC,
